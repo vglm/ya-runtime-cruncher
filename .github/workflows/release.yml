@@ -36,7 +36,7 @@ jobs:
         run: cargo build --workspace --release
 
       - name: Move descriptor
-        run: cp conf/ya-dummy-ai.json target/release/ya-dummy-ai.json
+        run: cp conf/ya-dummy-cruncher.json target/release/ya-dummy-cruncher.json
 
       - name: Pack
         id: pack

@@ -1,9 +1,9 @@
-# ya-runtime-ai
+# ya-runtime-cruncher
 
 ## Provider setup
 
 Run `cargo build --workspace`.
-Create exeunits descriptor json file using [ya-runtime-ai.json](conf/ya-dummy-ai.json) as an example (with correct `supervisor-path`).
+Create exeunits descriptor json file using [ya-runtime-ai.json](conf/ya-dummy-cruncher.json) as an example (with correct `supervisor-path`).
 
 Point `ya-provider` to exeunits descriptor using `EXE_UNIT_PATH` variable.
 
