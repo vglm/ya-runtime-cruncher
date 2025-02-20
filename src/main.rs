@@ -26,7 +26,7 @@ use ya_counters::service::{CountersService, CountersServiceBuilder};
 use ya_counters::TimeCounter;
 use ya_gsb_http_proxy::gsb_to_http::GsbToHttpProxy;
 use ya_service_bus::typed::{self as gsb, Endpoint};
-use ya_transfer::transfer::{DeployImage, Shutdown, TransferService, TransferServiceContext};
+use ya_transfer::transfer::{Shutdown, TransferService, TransferServiceContext};
 
 use crate::agreement::AgreementDesc;
 use crate::cli::*;
@@ -315,47 +315,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                 for exe in &exec.exe_script {
                     match exe {
                         ExeScriptCommand::Deploy { .. } => {
-                            send_state(
-                                &ctx,
-                                ActivityState::from(StatePair(
-                                    State::Initialized,
-                                    Some(State::Deployed),
-                                )),
-                            )
-                            .await
-                            .map_err(|e| RpcMessageError::Service(e.to_string()))?;
 
-                            log::info!(
-                                "Got Deploy command. Deploying image: {}",
-                                ctx.agreement.model
-                            );
-
-                            ctx.model_path = ctx
-                                .transfers
-                                .send(DeployImage {
-                                    task_package: Some(ctx.agreement.model.clone()),
-                                })
-                                .await
-                                .map_err(|e| format!("Failed to send DeployImage: {e}"))
-                                .map_err(RpcMessageError::Service)?
-                                .map_err(|e| format!("DeployImage failed: {e}"))
-                                .map_err(RpcMessageError::Service)?;
-
-                            log::info!("Image deployed: {}", ctx.agreement.model);
-
-                            send_state(&ctx, ActivityState::from(StatePair(State::Deployed, None)))
-                                .await
-                                .map_err(|e| RpcMessageError::Service(e.to_string()))?;
-
-                            result.push(ExeScriptCommandResult {
-                                index: result.len() as u32,
-                                result: CommandResult::Ok,
-                                stdout: None,
-                                stderr: None,
-                                message: None,
-                                is_batch_finished: false,
-                                event_date: Utc::now(),
-                            });
                         }
                         ExeScriptCommand::Start { args, .. } => {
                             log::debug!("Raw Start cmd args: {args:?} [ignored]");
