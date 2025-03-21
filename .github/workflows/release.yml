@@ -28,7 +28,6 @@ jobs:
           toolchain: ${{ env.rust_stable }}
           components: clippy, rustfmt
 
-
       - uses: Swatinem/rust-cache@v2
 
       - run: cargo tree --locked

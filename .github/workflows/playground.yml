@@ -1,4 +1,4 @@
-name: Tests2
+name: Playground
 
 on:
   push:
@@ -23,5 +23,8 @@ jobs:
       - name: Install yagna
         run: |
           curl -sSf https://join.golem.network/as-provider --output as-provider.sh
-          chmod +x as-provider.sh
-          RUN GOLEM_ACCEPT_TOS=yes BATCH_MODE=yes YA_INSTALLER_CORE=${YAGNA_VERSION} ./as-provider.sh
+          /bin/bash as-provider.sh
+        env:
+          GOLEM_ACCEPT_TOS: yes
+          BATCH_MODE: yes
+          YA_INSTALLER_CORE: ${{ env.YAGNA_VERSION }}
