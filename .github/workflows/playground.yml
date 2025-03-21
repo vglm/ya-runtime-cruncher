@@ -5,7 +5,7 @@ on:
     branches: [ "work" ]
 
 env:
-  YAGNA_VERSION: 0.17.1
+  YAGNA_VERSION: v0.17.1
 
 jobs:
   playground:
