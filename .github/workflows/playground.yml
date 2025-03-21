@@ -91,7 +91,7 @@ jobs:
 
       - name: Prepare client
         run: |
-          git clone git@github.com:vglm/crunch-on-golem.git
+          git clone https://github.com/vglm/crunch-on-golem.git
           cd crunch-on-golem
           git checkout plugin
           npm install
