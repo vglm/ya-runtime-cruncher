@@ -60,34 +60,11 @@ async fn activity_loop<T: process::Runtime + Clone + Unpin + 'static>(
     report_url: &str,
     activity_id: &str,
     process: ProcessController<T>,
-    counters: Addr<CountersService>,
 ) -> anyhow::Result<()> {
     let report_service = gsb::service(report_url);
 
     while let Some(()) = process.report() {
-        match counters.send(GetCounters).await {
-            Ok(resp) => match resp {
-                Ok(current_usage) => {
-                    set_usage_msg(&report_service, activity_id, current_usage).await
-                }
-                Err(err) => match err {
-                    CounterError::UsageLimitExceeded(info) => {
-                        set_terminate_state_msg(
-                            &report_service,
-                            activity_id,
-                            Some(format!("Usage limit exceeded: {}", info)),
-                            None,
-                        )
-                        .await
-                    }
-                    error => {
-                        log::error!("Unable to retrieve counters: {:?}", error);
-                        anyhow::bail!("Runtime exited because of retrieving counters failure");
-                    }
-                },
-            },
-            Err(e) => log::warn!("Unable to report activity usage: {:?}", e),
-        }
+
 
         select! {
             _ = tokio::time::sleep(Duration::from_secs(1)) => {},
@@ -252,20 +229,8 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
 
     let agreement = AgreementDesc::load(agreement_path)?;
 
-    let mut gsb_proxy = GsbToHttpProxy::new("http://localhost:7861/".into());
+    //let mut gsb_proxy = GsbToHttpProxy::new("http://localhost:7861/".into());
 
-    let mut counters = CountersServiceBuilder::new(agreement.counters.clone(), Some(10000));
-    counters
-        .with_counter(TimeCounter::ID, Box::<TimeCounter>::default())
-        .with_counter(
-            "ai-runtime.requests",
-            Box::new(gsb_proxy.requests_counter()),
-        )
-        .with_counter(
-            "golem.usage.gpu-sec",
-            Box::new(gsb_proxy.requests_duration_counter()),
-        );
-    let counters = counters.build().start();
 
     let ctx = ExeUnitContext {
         activity_id: activity_id.clone(),
@@ -285,8 +250,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
     let activity_pinger = activity_loop(
         report_url,
         activity_id,
-        ctx.process_controller.clone(),
-        counters.clone(),
+        ctx.process_controller.clone()
     );
 
     #[cfg(target_os = "windows")]
@@ -424,9 +388,6 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                 )))
             }
         });
-
-        gsb_proxy.bind(&exe_unit_url);
-        gsb_proxy.bind_streaming(&exe_unit_url);
     };
     send_state(
         &ctx,
