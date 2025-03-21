@@ -89,3 +89,11 @@ jobs:
           YAGNA_AUTOCONF_APPKEY: r5eq7ue3sto6r
           YAGNA_APPKEY: r5eq7ue3sto6r
 
+      - name: Prepare client
+        run: |
+          git clone git@github.com:vglm/crunch-on-golem.git
+          cd crunch-on-golem
+          git checkout plugin
+          npm install
+          
+          
