@@ -22,7 +22,7 @@ jobs:
 
       - name: Install yagna
         run: |
-          curl -sSf https://join.golem.network/as-provider --output as-provider.sh
+          curl -sSL https://join.golem.network/as-provider --output as-provider.sh
           /bin/bash as-provider.sh
         env:
           GOLEM_ACCEPT_TOS: yes
