@@ -17,7 +17,7 @@ jobs:
 
       - name: Start centralnet
         run: |
-          docker run -p 7999:7999 scx1332/centralnet ya-sb-router -l tcp://0.0.0.0:7999
+          docker run -p 7999:7999 -d scx1332/centralnet ya-sb-router -l tcp://0.0.0.0:7999
 
       - name: Install yagna
         run: |
