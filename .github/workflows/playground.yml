@@ -72,5 +72,5 @@ jobs:
           YAGNA_API_URL: http://127.0.0.1:19936
           GSB_URL: tcp://127.0.0.1:19935
           YA_PAYMENT_NETWORK: holesky
-          DEFAULT_PLUGINS_DIR: conf/ya-*.json
+          EXE_UNIT_PATH: conf/ya-*.json
 
