@@ -8,23 +8,16 @@ env:
   YAGNA_VERSION: 0.17.1
 
 jobs:
-  release:
-    name: CI
-    runs-on: ${{ matrix.os }}-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    strategy:
-      fail-fast: true
-      matrix:
-        os:
-          - ubuntu
-          - windows
+  playground:
+    name: Test playground
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Start centralnet
         run: |
-          docker run -p 7999:7999  scx1332/centralnet ya-sb-router -l tcp://0.0.0.0:7999
+          docker run -p 7999:7999 scx1332/centralnet ya-sb-router -l tcp://0.0.0.0:7999
 
       - name: Install yagna
         run: |
