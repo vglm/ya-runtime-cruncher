@@ -37,10 +37,9 @@ jobs:
           yagna service run&
         env:
           YAGNA_DATADIR: yagna-provider-dir
-          DATA_DIR: provider-dir
           YAGNA_API_URL: http://127.0.0.1:19936
           GSB_URL: tcp://127.0.0.1:19935
-          YA_PAYMENT_NETWORK: holesky
+          YAGNA_AUTOCONF_APPKEY: p4e4rov2id2er123
 
       - name: Run requestor
         run: |
@@ -53,8 +52,8 @@ jobs:
           PAYMENT_CYCLE_DEFAULT_INTERVAL: 24h
           YAGNA_AUTOCONF_ID_SECRET: 4d554ec1f74297f27d5f98f55f7f6e2205ef06adcb9397cf6f04c205560b0299
           YAGNA_DATADIR: yagna-requestor-dir
-          YAGNA_AUTOCONF_APPKEY: p4e4rov2id2er123
-          YAGNA_APPKEY: p4e4rov2id2er123
+          YAGNA_AUTOCONF_APPKEY: r5eq7ue3sto6r
+          YAGNA_APPKEY: r5eq7ue3sto6r
 
       - name: Run yagna provider part 2
         run: |
@@ -73,4 +72,5 @@ jobs:
           GSB_URL: tcp://127.0.0.1:19935
           YA_PAYMENT_NETWORK: holesky
           EXE_UNIT_PATH: conf/ya-*.json
+          YAGNA_APPKEY: p4e4rov2id2er123
 
