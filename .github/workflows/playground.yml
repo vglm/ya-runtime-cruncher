@@ -11,6 +11,7 @@ jobs:
   playground:
     name: Test playground
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # Maximum run time for the job
 
     steps:
       - uses: actions/checkout@v4
