@@ -6,6 +6,8 @@ on:
 
 env:
   YAGNA_VERSION: v0.17.1
+  YA_NET_TYPE: central
+  CENTRAL_NET_HOST: 127.0.0.1:7999
 
 jobs:
   playground:
@@ -33,15 +35,21 @@ jobs:
       - name: Run provider
         run: |
           yagna service run&
-          sleep 10
-          yagna payment status
         env:
-          YAGNA_DATADIR: yagnadir
-          YA_NET_TYPE: central
-          CENTRAL_NET_HOST: 127.0.0.1:7999
-          YAGNA_AUTOCONF_APPKEY: p4e4rov2id2er123
-          YAGNA_APPKEY: p4e4rov2id2er123
-          DATA_DIR: providerdir
+          YAGNA_DATADIR: yagna-provider-dir
+          DATA_DIR: provider-dir
           YAGNA_API_URL: http://127.0.0.1:19936
           GSB_URL: tcp://127.0.0.1:19935
           YA_PAYMENT_NETWORK: holesky
+
+      - name: Run requestor
+        run: |
+          yagna service run&
+          sleep 10
+          yagna payment fund
+          yagna payment status
+        env:
+          YAGNA_AUTOCONFIG_ID: 4d554ec1f74297f27d5f98f55f7f6e2205ef06adcb9397cf6f04c205560b0299
+          YAGNA_DATADIR: yagna-requestor-dir
+          YAGNA_AUTOCONF_APPKEY: p4e4rov2id2er123
+          YAGNA_APPKEY: p4e4rov2id2er123
