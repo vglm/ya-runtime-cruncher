@@ -2,7 +2,8 @@
     {
         "name": "dummy",
         "version": "0.1.0",
-        "supervisor-path": "ya-runtime-ai.exe",
+        "supervisor-path": "target/debug/ya-runtime-cruncher",
+        "runtime-path": "target/debug/dummy",
         "extra-args": [
             "--runtime",
             "dummy"

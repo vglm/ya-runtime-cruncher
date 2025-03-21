@@ -32,7 +32,7 @@ jobs:
           BATCH_MODE: yes
           YA_INSTALLER_CORE: ${{ env.YAGNA_VERSION }}
 
-      - name: Run provider
+      - name: Run yagna provider part 1
         run: |
           yagna service run&
         env:
@@ -55,3 +55,22 @@ jobs:
           YAGNA_DATADIR: yagna-requestor-dir
           YAGNA_AUTOCONF_APPKEY: p4e4rov2id2er123
           YAGNA_APPKEY: p4e4rov2id2er123
+
+      - name: Run yagna provider part 2
+        run: |
+          ya-provider preset create --no-interactive \
+            --preset-name dummy --exe-unit dummy \
+            --pricing linear \
+            --price num-requests=0 --price duration=0 --price gpu-sec=0
+          ya-provider preset activate dummy
+          ya-provider preset remove default
+          ya-provider preset list
+          ya-provider run&
+        env:
+          YAGNA_DATADIR: yagna-provider-dir
+          DATA_DIR: provider-dir
+          YAGNA_API_URL: http://127.0.0.1:19936
+          GSB_URL: tcp://127.0.0.1:19935
+          YA_PAYMENT_NETWORK: holesky
+          DEFAULT_PLUGINS_DIR: conf/ya-*.json
+
