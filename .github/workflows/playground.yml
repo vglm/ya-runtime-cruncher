@@ -1,0 +1,33 @@
+name: Tests2
+
+on:
+  push:
+    branches: [ "work" ]
+
+env:
+  YAGNA_VERSION: 0.17.1
+
+jobs:
+  release:
+    name: CI
+    runs-on: ${{ matrix.os }}-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    strategy:
+      fail-fast: true
+      matrix:
+        os:
+          - ubuntu
+          - windows
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start centralnet
+        run: |
+          docker run -p 7999:7999  scx1332/centralnet ya-sb-router -l tcp://0.0.0.0:7999
+
+      - name: Install yagna
+        run: |
+          curl -sSf https://join.golem.network/as-provider --output as-provider.sh
+          chmod +x as-provider.sh
+          RUN GOLEM_ACCEPT_TOS=yes BATCH_MODE=yes YA_INSTALLER_CORE=${YAGNA_VERSION} ./as-provider.sh
