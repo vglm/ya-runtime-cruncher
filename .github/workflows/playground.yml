@@ -48,6 +48,7 @@ jobs:
           sleep 10
           yagna payment fund
           yagna payment status
+          yagna payment process list
         env:
           YAGNA_AUTOCONF_ID_SECRET: 4d554ec1f74297f27d5f98f55f7f6e2205ef06adcb9397cf6f04c205560b0299
           YAGNA_DATADIR: yagna-requestor-dir
