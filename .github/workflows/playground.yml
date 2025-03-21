@@ -29,3 +29,19 @@ jobs:
           GOLEM_ACCEPT_TOS: yes
           BATCH_MODE: yes
           YA_INSTALLER_CORE: ${{ env.YAGNA_VERSION }}
+
+      - name: Run provider
+        run: |
+          yagna service run&
+          sleep 10
+          yagna payment status
+        env:
+          YAGNA_DATADIR: yagnadir
+          YA_NET_TYPE: central
+          CENTRAL_NET_HOST: 127.0.0.1:7999
+          YAGNA_AUTOCONF_APPKEY: p4e4rov2id2er123
+          YAGNA_APPKEY: p4e4rov2id2er123
+          DATA_DIR: providerdir
+          YAGNA_API_URL: http://127.0.0.1:19936
+          GSB_URL: tcp://127.0.0.1:19935
+          YA_PAYMENT_NETWORK: holesky
