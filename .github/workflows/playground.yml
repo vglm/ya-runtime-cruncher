@@ -96,4 +96,11 @@ jobs:
           git checkout plugin
           npm install
           
-          
+      - name: Run client
+        run: |
+          cd crunch-on-golem
+          npm run crunch
+        env:
+          YAGNA_DATADIR: yagna-requestor-dir
+          YAGNA_APPKEY: r5eq7ue3sto6r
+
