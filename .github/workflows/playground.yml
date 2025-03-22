@@ -76,7 +76,6 @@ jobs:
           EXE_UNIT_PATH: conf/ya-*.json
           YAGNA_APPKEY: p4e4rov2id2er123
 
-
       - name: Run requestor part 2
         run: |
           yagna payment fund
@@ -99,8 +98,21 @@ jobs:
       - name: Run client
         run: |
           cd crunch-on-golem
-          npm run crunch
+          # npm run crunch
         env:
           YAGNA_DATADIR: yagna-requestor-dir
           YAGNA_APPKEY: r5eq7ue3sto6r
 
+      - name: Prepare logs and db
+        if: always()
+        run: |
+          killall -9 yagna
+          killall -9 ya-sb-router
+          tar -czf logs.tar.gz yagna-provider-dir yagna-requestor-dir provider-dir
+
+      - name: Upload logs and db
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs.tar.gz
+          path: logs.tar.gz
