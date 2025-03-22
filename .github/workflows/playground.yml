@@ -53,9 +53,14 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Compile dummy
+      - name: Compile plugin
         run: |
           cargo build --all
+
+      - name: Install plugin
+        run: |
+          cp target/debug/dummy conf/dummy
+          cp target/debug/ya-runtime-cruncher conf/ya-runtime-cruncher
 
       - name: Run yagna provider part 2
         run: |
