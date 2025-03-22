@@ -2,8 +2,8 @@
     {
         "name": "dummy",
         "version": "0.1.0",
-        "supervisor-path": "target/debug/ya-runtime-cruncher",
-        "runtime-path": "target/debug/dummy",
+        "supervisor-path": "ya-runtime-cruncher",
+        "runtime-path": "dummy",
         "extra-args": [
             "--runtime",
             "dummy"
