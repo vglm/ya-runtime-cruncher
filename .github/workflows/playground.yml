@@ -10,7 +10,6 @@ env:
   CENTRAL_NET_HOST: 127.0.0.1:7999
   MEAN_CYCLIC_BCAST_INTERVAL: 15s
   MEAN_CYCLIC_UNSUBSCRIBES_INTERVAL: 15s
-  RUST_LOG: debug
 
 jobs:
   playground:
@@ -47,6 +46,7 @@ jobs:
           YAGNA_API_URL: http://127.0.0.1:19936
           GSB_URL: tcp://127.0.0.1:19935
           YAGNA_AUTOCONF_APPKEY: p4e4rov2id2er123
+          RUST_LOG: debug
 
       - name: Run requestor part 1
         run: |
@@ -57,6 +57,7 @@ jobs:
           YAGNA_DATADIR: yagna-requestor-dir
           YAGNA_AUTOCONF_APPKEY: r5eq7ue3sto6r
           YAGNA_APPKEY: r5eq7ue3sto6r
+          RUST_LOG: debug
 
       - uses: Swatinem/rust-cache@v2
 
@@ -88,6 +89,7 @@ jobs:
           EXE_UNIT_PATH: conf/ya-*.json
           YAGNA_APPKEY: p4e4rov2id2er123
           NODE_NAME: DummyNode
+          RUST_LOG: debug
 
       - name: Run requestor part 2
         run: |
@@ -100,6 +102,7 @@ jobs:
           YAGNA_DATADIR: yagna-requestor-dir
           YAGNA_AUTOCONF_APPKEY: r5eq7ue3sto6r
           YAGNA_APPKEY: r5eq7ue3sto6r
+          RUST_LOG: debug
 
       - name: Run client
         run: |
