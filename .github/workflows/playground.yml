@@ -86,6 +86,7 @@ jobs:
           YA_PAYMENT_NETWORK: holesky
           EXE_UNIT_PATH: conf/ya-*.json
           YAGNA_APPKEY: p4e4rov2id2er123
+          NODE_NAME: DummyNode
 
       - name: Run requestor part 2
         run: |
@@ -116,6 +117,9 @@ jobs:
       - name: Prepare logs and db
         if: always()
         run: |
+          tree yagna-provider-dir 
+          tree yagna-requestor-dir
+          tree provider-dir
           tar -czf logs.tar.gz yagna-provider-dir yagna-requestor-dir provider-dir
 
       - name: Upload logs and db
