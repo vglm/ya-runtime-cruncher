@@ -275,7 +275,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
 
                             send_state(
                                 &ctx,
-                                ActivityState::from(StatePair(State::Deployed, Some(State::Ready))),
+                                ActivityState::from(StatePair(State::Ready, Some(State::Ready))),
                             )
                             .await
                             .map_err(|e| RpcMessageError::Service(e.to_string()))?;
