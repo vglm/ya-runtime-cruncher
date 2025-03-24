@@ -313,6 +313,14 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                                 event_date: Utc::now(),
                             });
                         }
+                        ExeScriptCommand::Run {entry_point, args, capture} => {
+                            let command = entry_point;
+                            log::info!("Receive command {command} with args {}", args.join(" "));
+                            //let capture = capture;
+                            log::debug!("Parameter capture ignored");
+
+
+                        }
                         cmd => {
                             log::error!("invalid command for ai runtime: {:?}", cmd);
                             return Err(RpcMessageError::Activity(format!(

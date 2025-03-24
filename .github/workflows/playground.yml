@@ -89,7 +89,6 @@ jobs:
           EXE_UNIT_PATH: conf/ya-*.json
           YAGNA_APPKEY: p4e4rov2id2er123
           NODE_NAME: DummyNode
-          RUST_LOG: debug
 
       - name: Run requestor part 2
         run: |
@@ -102,7 +101,6 @@ jobs:
           YAGNA_DATADIR: yagna-requestor-dir
           YAGNA_AUTOCONF_APPKEY: r5eq7ue3sto6r
           YAGNA_APPKEY: r5eq7ue3sto6r
-          RUST_LOG: debug
 
       - name: Run client
         run: |
