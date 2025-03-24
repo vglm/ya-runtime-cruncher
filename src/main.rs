@@ -104,6 +104,7 @@ async fn set_terminate_state_msg(
     reason: Option<String>,
     error_message: Option<String>,
 ) {
+    //
     if let Err(err) = report_service
         .call(activity::local::SetState {
             activity_id: activity_id.into(),
