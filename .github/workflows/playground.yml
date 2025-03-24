@@ -114,13 +114,20 @@ jobs:
           killall -9 ya-provider
           killall -9 yagna
 
-      - name: Show exe unit logs
+      - name: Show provider / exe unit logs
+        if: always()
         run: |
-          find provider-dir -name ya-runtime-cruncher*.log -exec sh -c 'echo "===== {} ====="; cat "{}"; echo ""' \;
+          find provider-dir -name *.log -exec sh -c 'echo "===== {} ====="; cat "{}"; echo ""' \;
 
       - name: Show yagna provider logs
+        if: always()
         run: |
-          find yagna-provider-dir -name ya-runtime-cruncher*.log -exec sh -c 'echo "===== {} ====="; cat "{}"; echo ""' \;
+          find yagna-provider-dir -name *.log -exec sh -c 'echo "===== {} ====="; cat "{}"; echo ""' \;
+
+      - name: Show yagna requestor logs
+        if: always()
+        run: |
+          find yagna-requestor-dir -name *.log -exec sh -c 'echo "===== {} ====="; cat "{}"; echo ""' \;
 
       - name: Prepare logs and db
         if: always()
