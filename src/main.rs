@@ -319,7 +319,15 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                             //let capture = capture;
                             log::debug!("Parameter capture ignored");
 
-
+                            result.push(ExeScriptCommandResult {
+                                index: result.len() as u32,
+                                result: CommandResult::Ok,
+                                stdout: None,
+                                stderr: None,
+                                message: None,
+                                is_batch_finished: true,
+                                event_date: Utc::now(),
+                            });
                         }
                         cmd => {
                             log::error!("invalid command for ai runtime: {:?}", cmd);
