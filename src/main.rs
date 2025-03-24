@@ -16,8 +16,8 @@ use tokio::select;
 use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender};
 use tokio::time::sleep;
 use ya_client_model::activity::activity_state::*;
-use ya_client_model::activity::{CommandOutput, ExeScriptCommand};
 use ya_client_model::activity::{ActivityUsage, CommandResult, ExeScriptCommandResult};
+use ya_client_model::activity::{CommandOutput, ExeScriptCommand};
 use ya_core_model::activity;
 use ya_core_model::activity::RpcMessageError;
 use ya_counters::error::CounterError;
@@ -64,8 +64,6 @@ async fn activity_loop<T: process::Runtime + Clone + Unpin + 'static>(
     let report_service = gsb::service(report_url);
 
     while let Some(()) = process.report() {
-
-
         select! {
             _ = tokio::time::sleep(Duration::from_secs(1)) => {},
             status = process.clone() => {
@@ -231,7 +229,6 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
 
     //let mut gsb_proxy = GsbToHttpProxy::new("http://localhost:7861/".into());
 
-
     let ctx = ExeUnitContext {
         activity_id: activity_id.clone(),
         report_url: report_url.clone(),
@@ -247,14 +244,8 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
         model_path: None,
     };
 
-    let activity_pinger = activity_loop(
-        report_url,
-        activity_id,
-        ctx.process_controller.clone()
-    );
+    let activity_pinger = activity_loop(report_url, activity_id, ctx.process_controller.clone());
 
-    #[cfg(target_os = "windows")]
-    let _job = ya_utils_process::JobObject::try_new_current()?;
     {
         let batch = ctx.batches.clone();
         let batch_results = batch.clone();
@@ -291,9 +282,6 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                             .await
                             .map_err(|e| RpcMessageError::Service(e.to_string()))?;
 
-                            log::info!("Got start command, simulating that something is happening for 60 seconds");
-                            sleep(Duration::from_secs(20)).await;
-
                             log::info!("Got start command, changing state of exe unit to ready",);
                             result.push(ExeScriptCommandResult {
                                 index: result.len() as u32,
@@ -328,6 +316,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                             });
                         }
                         cmd => {
+                            log::error!("invalid command for ai runtime: {:?}", cmd);
                             return Err(RpcMessageError::Activity(format!(
                                 "invalid command for ai runtime: {:?}",
                                 cmd
