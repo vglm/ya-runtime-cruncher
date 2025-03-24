@@ -104,7 +104,6 @@ async fn set_terminate_state_msg(
     reason: Option<String>,
     error_message: Option<String>,
 ) {
-    //
     if let Err(err) = report_service
         .call(activity::local::SetState {
             activity_id: activity_id.into(),
@@ -270,9 +269,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                 let mut result = Vec::new();
                 for exe in &exec.exe_script {
                     match exe {
-                        ExeScriptCommand::Deploy { .. } => {
-
-                        }
+                        ExeScriptCommand::Deploy { .. } => {}
                         ExeScriptCommand::Start { args, .. } => {
                             log::debug!("Raw Start cmd args: {args:?} [ignored]");
 
@@ -321,7 +318,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                             return Err(RpcMessageError::Activity(format!(
                                 "invalid command for ai runtime: {:?}",
                                 cmd
-                            )))
+                            )));
                         }
                     }
                 }
