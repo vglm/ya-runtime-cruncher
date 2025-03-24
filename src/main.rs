@@ -313,7 +313,11 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                                 event_date: Utc::now(),
                             });
                         }
-                        ExeScriptCommand::Run {entry_point, args, capture} => {
+                        ExeScriptCommand::Run {
+                            entry_point,
+                            args,
+                            capture,
+                        } => {
                             let command = entry_point;
                             log::info!("Receive command {command} with args {}", args.join(" "));
                             //let capture = capture;
@@ -322,9 +326,9 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                             result.push(ExeScriptCommandResult {
                                 index: result.len() as u32,
                                 result: CommandResult::Ok,
-                                stdout: None,
-                                stderr: None,
-                                message: None,
+                                stdout: Some(CommandOutput::Str("".to_string())),
+                                stderr: Some(CommandOutput::Str("".to_string())),
+                                message: Some("Ok".to_string()),
                                 is_batch_finished: true,
                                 event_date: Utc::now(),
                             });
