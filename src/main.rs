@@ -14,7 +14,7 @@ use futures::prelude::*;
 use process::Runtime;
 use tokio::select;
 use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender};
-
+use tokio::time::sleep;
 use ya_client_model::activity::activity_state::*;
 use ya_client_model::activity::ExeScriptCommand;
 use ya_client_model::activity::{ActivityUsage, CommandResult, ExeScriptCommandResult};
@@ -291,15 +291,8 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                             .await
                             .map_err(|e| RpcMessageError::Service(e.to_string()))?;
 
-                            ctx.process_controller
-                                .start(ctx.model_path.clone(), (*runtime_config).clone())
-                                .await
-                                .map_err(|e| RpcMessageError::Activity(e.to_string()))?;
-                            log::debug!("Started process");
-
-                            send_state(&ctx, ActivityState::from(StatePair(State::Ready, None)))
-                                .await
-                                .map_err(|e| RpcMessageError::Service(e.to_string()))?;
+                            log::info!("Got start command, simulating that something is happening for 60 seconds");
+                            sleep(Duration::from_secs(60)).await;
 
                             log::info!("Got start command, changing state of exe unit to ready",);
                             result.push(ExeScriptCommandResult {

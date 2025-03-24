@@ -20,6 +20,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Prepare client in background
+        run: |
+          ./prepare_client.sh&
+
       - name: Start centralnet
         run: |
           docker run -p 7999:7999 -d scx1332/centralnet ya-sb-router -l tcp://0.0.0.0:7999
@@ -95,13 +99,6 @@ jobs:
           YAGNA_AUTOCONF_APPKEY: r5eq7ue3sto6r
           YAGNA_APPKEY: r5eq7ue3sto6r
 
-      - name: Prepare client
-        run: |
-          git clone https://github.com/vglm/crunch-on-golem.git
-          cd crunch-on-golem
-          git checkout plugin
-          npm install
-          
       - name: Run client
         run: |
           cd crunch-on-golem
