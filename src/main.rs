@@ -289,7 +289,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                                 stdout: None,
                                 stderr: None,
                                 message: None,
-                                is_batch_finished: false,
+                                is_batch_finished: true,
                                 event_date: Utc::now(),
                             })
                         }
