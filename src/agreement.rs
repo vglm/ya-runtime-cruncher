@@ -21,10 +21,11 @@ impl AgreementDesc {
         let counters: Vec<String> = agreement
             .pointer_typed("/offer/properties/golem/com/usage/vector")
             .map_err(|e| anyhow!("Invalid Agreement: Error loading usage counters: {e}"))?;
-        let model: String = agreement
-            .pointer_typed("/demand/properties/golem/srv/comp/ai/model")
-            .map_err(|e| anyhow!("Invalid Agreement: Failed to find ai model: {e}"))?;
+        //let model: String = agreement
+        //    .pointer_typed("/demand/properties/golem/srv/comp/ai/model")
+        //    .map_err(|e| anyhow!("Invalid Agreement: Failed to find ai model: {e}"))?;
 
+        let model = "TESTING model".to_string();
         Ok(AgreementDesc { counters, model })
     }
 }

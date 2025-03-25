@@ -4,6 +4,7 @@ use std::io;
 use std::io::Write;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::time::Duration;
 
 use actix::prelude::*;
@@ -13,11 +14,11 @@ use clap::Parser;
 use futures::prelude::*;
 use process::Runtime;
 use tokio::select;
-use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender};
-
+use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender, Mutex};
+use tokio::time::sleep;
 use ya_client_model::activity::activity_state::*;
-use ya_client_model::activity::ExeScriptCommand;
 use ya_client_model::activity::{ActivityUsage, CommandResult, ExeScriptCommandResult};
+use ya_client_model::activity::{CommandOutput, ExeScriptCommand};
 use ya_core_model::activity;
 use ya_core_model::activity::RpcMessageError;
 use ya_counters::error::CounterError;
@@ -60,35 +61,10 @@ async fn activity_loop<T: process::Runtime + Clone + Unpin + 'static>(
     report_url: &str,
     activity_id: &str,
     process: ProcessController<T>,
-    counters: Addr<CountersService>,
 ) -> anyhow::Result<()> {
     let report_service = gsb::service(report_url);
 
     while let Some(()) = process.report() {
-        match counters.send(GetCounters).await {
-            Ok(resp) => match resp {
-                Ok(current_usage) => {
-                    set_usage_msg(&report_service, activity_id, current_usage).await
-                }
-                Err(err) => match err {
-                    CounterError::UsageLimitExceeded(info) => {
-                        set_terminate_state_msg(
-                            &report_service,
-                            activity_id,
-                            Some(format!("Usage limit exceeded: {}", info)),
-                            None,
-                        )
-                        .await
-                    }
-                    error => {
-                        log::error!("Unable to retrieve counters: {:?}", error);
-                        anyhow::bail!("Runtime exited because of retrieving counters failure");
-                    }
-                },
-            },
-            Err(e) => log::warn!("Unable to report activity usage: {:?}", e),
-        }
-
         select! {
             _ = tokio::time::sleep(Duration::from_secs(1)) => {},
             status = process.clone() => {
@@ -252,20 +228,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
 
     let agreement = AgreementDesc::load(agreement_path)?;
 
-    let mut gsb_proxy = GsbToHttpProxy::new("http://localhost:7861/".into());
-
-    let mut counters = CountersServiceBuilder::new(agreement.counters.clone(), Some(10000));
-    counters
-        .with_counter(TimeCounter::ID, Box::<TimeCounter>::default())
-        .with_counter(
-            "ai-runtime.requests",
-            Box::new(gsb_proxy.requests_counter()),
-        )
-        .with_counter(
-            "golem.usage.gpu-sec",
-            Box::new(gsb_proxy.requests_duration_counter()),
-        );
-    let counters = counters.build().start();
+    //let mut gsb_proxy = GsbToHttpProxy::new("http://localhost:7861/".into());
 
     let ctx = ExeUnitContext {
         activity_id: activity_id.clone(),
@@ -282,21 +245,17 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
         model_path: None,
     };
 
-    let activity_pinger = activity_loop(
-        report_url,
-        activity_id,
-        ctx.process_controller.clone(),
-        counters.clone(),
-    );
+    let activity_pinger = activity_loop(report_url, activity_id, ctx.process_controller.clone());
 
-    #[cfg(target_os = "windows")]
-    let _job = ya_utils_process::JobObject::try_new_current()?;
+    let current_usage = Arc::new(Mutex::new(vec![0.0, 0.0, 0.0]));
+
     {
         let batch = ctx.batches.clone();
         let batch_results = batch.clone();
 
         let ctx = ctx.clone();
         gsb::bind(&exe_unit_url, move |exec: activity::Exec| {
+            let current_usage = current_usage.clone();
             let exec = exec.clone();
             let batch = batch.clone();
             let batch_id = exec.batch_id.clone();
@@ -314,28 +273,23 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                 let mut result = Vec::new();
                 for exe in &exec.exe_script {
                     match exe {
-                        ExeScriptCommand::Deploy { .. } => {
-
-                        }
+                        ExeScriptCommand::Deploy { .. } => {}
                         ExeScriptCommand::Start { args, .. } => {
                             log::debug!("Raw Start cmd args: {args:?} [ignored]");
 
+                            set_usage_msg(
+                                &gsb::service(ctx.report_url.clone()),
+                                &ctx.activity_id,
+                                current_usage.lock().await.clone(),
+                            )
+                            .await;
+
                             send_state(
                                 &ctx,
-                                ActivityState::from(StatePair(State::Deployed, Some(State::Ready))),
+                                ActivityState::from(StatePair(State::Ready, Some(State::Ready))),
                             )
                             .await
                             .map_err(|e| RpcMessageError::Service(e.to_string()))?;
-
-                            ctx.process_controller
-                                .start(ctx.model_path.clone(), (*runtime_config).clone())
-                                .await
-                                .map_err(|e| RpcMessageError::Activity(e.to_string()))?;
-                            log::debug!("Started process");
-
-                            send_state(&ctx, ActivityState::from(StatePair(State::Ready, None)))
-                                .await
-                                .map_err(|e| RpcMessageError::Service(e.to_string()))?;
 
                             log::info!("Got start command, changing state of exe unit to ready",);
                             result.push(ExeScriptCommandResult {
@@ -344,7 +298,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                                 stdout: None,
                                 stderr: None,
                                 message: None,
-                                is_batch_finished: false,
+                                is_batch_finished: true,
                                 event_date: Utc::now(),
                             })
                         }
@@ -370,11 +324,32 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                                 event_date: Utc::now(),
                             });
                         }
+                        ExeScriptCommand::Run {
+                            entry_point,
+                            args,
+                            capture,
+                        } => {
+                            let command = entry_point;
+                            log::info!("Receive command {command} with args {}", args.join(" "));
+                            //let capture = capture;
+                            log::debug!("Parameter capture ignored");
+
+                            result.push(ExeScriptCommandResult {
+                                index: result.len() as u32,
+                                result: CommandResult::Ok,
+                                stdout: Some(CommandOutput::Str("".to_string())),
+                                stderr: Some(CommandOutput::Str("".to_string())),
+                                message: Some("Ok".to_string()),
+                                is_batch_finished: true,
+                                event_date: Utc::now(),
+                            });
+                        }
                         cmd => {
+                            log::error!("invalid command for ai runtime: {:?}", cmd);
                             return Err(RpcMessageError::Activity(format!(
                                 "invalid command for ai runtime: {:?}",
                                 cmd
-                            )))
+                            )));
                         }
                     }
                 }
@@ -424,9 +399,6 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                 )))
             }
         });
-
-        gsb_proxy.bind(&exe_unit_url);
-        gsb_proxy.bind_streaming(&exe_unit_url);
     };
     send_state(
         &ctx,
