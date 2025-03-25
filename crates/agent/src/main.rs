@@ -19,8 +19,6 @@ async fn healthcheck(_req: HttpRequest) -> impl Responder {
     HttpResponse::Ok()
 }
 
-
-
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
@@ -28,12 +26,10 @@ async fn main() -> anyhow::Result<()> {
 
     log::info!("Dummy runtime. Args: {args:?}");
 
-    Ok(HttpServer::new(|| {
-        App::new()
-            .service(index)
-            .service(healthcheck)
-    })
-        .bind(("127.0.0.1", 7861))?
-        .run()
-        .await?)
+    Ok(
+        HttpServer::new(|| App::new().service(index).service(healthcheck))
+            .bind(("127.0.0.1", 7861))?
+            .run()
+            .await?,
+    )
 }

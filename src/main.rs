@@ -4,6 +4,7 @@ use std::io;
 use std::io::Write;
 use std::path::PathBuf;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::time::Duration;
 
 use actix::prelude::*;
@@ -13,7 +14,7 @@ use clap::Parser;
 use futures::prelude::*;
 use process::Runtime;
 use tokio::select;
-use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender};
+use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender, Mutex};
 use tokio::time::sleep;
 use ya_client_model::activity::activity_state::*;
 use ya_client_model::activity::{ActivityUsage, CommandResult, ExeScriptCommandResult};
@@ -246,12 +247,15 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
 
     let activity_pinger = activity_loop(report_url, activity_id, ctx.process_controller.clone());
 
+    let current_usage = Arc::new(Mutex::new(vec![0.0, 0.0, 0.0]));
+
     {
         let batch = ctx.batches.clone();
         let batch_results = batch.clone();
 
         let ctx = ctx.clone();
         gsb::bind(&exe_unit_url, move |exec: activity::Exec| {
+            let current_usage = current_usage.clone();
             let exec = exec.clone();
             let batch = batch.clone();
             let batch_id = exec.batch_id.clone();
@@ -273,9 +277,13 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                         ExeScriptCommand::Start { args, .. } => {
                             log::debug!("Raw Start cmd args: {args:?} [ignored]");
 
-                            set_usage_msg(&ctx, &exec.activity_id, vec![0.0, 0.0, 0.0])
-                                .await
-                                .map_err(|e| RpcMessageError::Service(e.to_string()))?;
+                            set_usage_msg(
+                                &gsb::service(ctx.report_url.clone()),
+                                &ctx.activity_id,
+                                current_usage.lock().await.clone(),
+                            )
+                            .await;
+
                             send_state(
                                 &ctx,
                                 ActivityState::from(StatePair(State::Ready, Some(State::Ready))),
