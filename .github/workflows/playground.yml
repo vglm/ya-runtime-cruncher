@@ -2,7 +2,9 @@ name: Playground
 
 on:
   push:
-    branches: [ "work" ]
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 env:
   YA_NET_TYPE: central
