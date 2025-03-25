@@ -273,6 +273,9 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                         ExeScriptCommand::Start { args, .. } => {
                             log::debug!("Raw Start cmd args: {args:?} [ignored]");
 
+                            set_usage_msg(&ctx, &exec.activity_id, vec![0.0, 0.0, 0.0])
+                                .await
+                                .map_err(|e| RpcMessageError::Service(e.to_string()))?;
                             send_state(
                                 &ctx,
                                 ActivityState::from(StatePair(State::Ready, Some(State::Ready))),
