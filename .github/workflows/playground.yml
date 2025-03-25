@@ -31,10 +31,9 @@ jobs:
           chmod +x as-provider.sh
           ./as-provider.sh
         env:
-          YAGNA_VERSION: pre-rel-v0.17.1-plugin2
           GOLEM_ACCEPT_TOS: yes
           BATCH_MODE: yes
-          YA_INSTALLER_CORE: ${{ env.YAGNA_VERSION }}
+          YA_INSTALLER_CORE: pre-rel-v0.17.1-plugin2
 
       - name: Run yagna provider part 1
         run: |
