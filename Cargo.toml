@@ -5,6 +5,7 @@ edition = "2021"
 
 [workspace]
 members = [
+    "crates/agent",
     "gpu-detection",
     "runtimes/dummy",
 ]
