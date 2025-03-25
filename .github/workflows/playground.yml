@@ -45,6 +45,8 @@ jobs:
           GSB_URL: tcp://127.0.0.1:19935
           YAGNA_AUTOCONF_APPKEY: p4e4rov2id2er123
           RUST_LOG: debug
+          MEAN_CYCLIC_BCAST_INTERVAL: 15s
+          MEAN_CYCLIC_UNSUBSCRIBES_INTERVAL: 15s
 
       - name: Run requestor part 1
         run: |
@@ -87,8 +89,6 @@ jobs:
           EXE_UNIT_PATH: conf/ya-*.json
           YAGNA_APPKEY: p4e4rov2id2er123
           NODE_NAME: DummyNode
-          MEAN_CYCLIC_BCAST_INTERVAL: 15s
-          MEAN_CYCLIC_UNSUBSCRIBES_INTERVAL: 15s
 
       - name: Run requestor part 2
         run: |
@@ -105,7 +105,7 @@ jobs:
       - name: Run client
         run: |
           cd crunch-on-golem
-          npm run crunch
+          npm run crunch&
         env:
           YAGNA_DATADIR: yagna-requestor-dir
           YAGNA_APPKEY: r5eq7ue3sto6r
