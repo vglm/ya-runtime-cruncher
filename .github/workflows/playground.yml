@@ -33,7 +33,7 @@ jobs:
         env:
           GOLEM_ACCEPT_TOS: yes
           BATCH_MODE: yes
-          YA_INSTALLER_CORE: v0.17.1-plugin2
+          YA_INSTALLER_CORE: pre-rel-v0.17.1-plugin3
 
       - name: Run yagna provider part 1
         run: |
