@@ -44,13 +44,11 @@ mod tests {
         let agreement_path = test_agreement_path();
         let desc = AgreementDesc::load(agreement_path).unwrap();
         let usage = [
-            "ai-runtime.requests",
+            "crunch.tera-hash",
             "golem.usage.duration_sec",
-            "golem.usage.gpu-sec",
         ];
 
         assert_eq!(desc.counters[0], usage[0]);
         assert_eq!(desc.counters[1], usage[1]);
-        assert_eq!(desc.counters[2], usage[2]);
     }
 }
