@@ -12,9 +12,9 @@
         "properties": {},
         "config": {
             "counters": {
-                "crunch.tera-hash": {
+                "golem.usage.tera-hash": {
                     "name": "tera-hash",
-                    "description": "NumHashes",
+                    "description": "NumTHashes",
                     "price": true
                 },
                 "golem.usage.duration_sec": {

@@ -44,7 +44,7 @@ mod tests {
         let agreement_path = test_agreement_path();
         let desc = AgreementDesc::load(agreement_path).unwrap();
         let usage = [
-            "crunch.tera-hash",
+            "golem.usage.tera-hash",
             "golem.usage.duration_sec",
         ];
 

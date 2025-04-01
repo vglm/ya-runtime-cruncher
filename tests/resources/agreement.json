@@ -72,9 +72,8 @@
           "scheme": "payu",
           "usage": {
             "vector": [
-              "crunch.tera-hash",
-              "golem.usage.duration_sec",
-              "golem.usage.gpu-sec"
+              "golem.usage.tera-hash",
+              "golem.usage.duration_sec"
             ]
           }
         },
