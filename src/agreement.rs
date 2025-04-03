@@ -6,7 +6,6 @@ use ya_agreement_utils::AgreementView;
 #[derive(Clone)]
 pub struct AgreementDesc {
     pub counters: Vec<String>,
-    pub model: String,
 }
 
 impl AgreementDesc {
@@ -25,8 +24,7 @@ impl AgreementDesc {
         //    .pointer_typed("/demand/properties/golem/srv/comp/ai/model")
         //    .map_err(|e| anyhow!("Invalid Agreement: Failed to find ai model: {e}"))?;
 
-        let model = "TESTING model".to_string();
-        Ok(AgreementDesc { counters, model })
+        Ok(AgreementDesc { counters })
     }
 }
 

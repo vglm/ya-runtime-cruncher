@@ -1,15 +1,10 @@
 use std::fs;
-use std::path::PathBuf;
-use std::process::ExitStatus;
 
-use async_trait::async_trait;
 use serde::Deserialize;
-
+use serde_json::Value;
 use ya_agreement_utils::OfferTemplate;
 
 use crate::offer_template;
-
-use super::{Runtime, RuntimeConfig};
 
 const OFFER_OVERRIDE_FILE_PATH_ENV: &str = "OFFER_OVERRIDE_FILE_PATH";
 
@@ -23,36 +18,29 @@ pub(crate) struct Config {
     pub dummy_arg: Option<String>,
 }
 
-impl RuntimeConfig for Config {
-    fn gpu_uuid(&self) -> Option<String> {
+impl Config {
+    pub(crate) fn gpu_uuid(&self) -> Option<String> {
         None
     }
 }
 
-#[async_trait]
-impl Runtime for Dummy {
-    async fn start(model: Option<PathBuf>, _config: Config) -> anyhow::Result<Dummy> {
-        panic!("Dummy runtime is not implemented yet");
-    }
-
-    async fn stop(&mut self) -> anyhow::Result<()> {
-        panic!("Dummy runtime is not implemented yet");
-    }
-
-    async fn wait(&mut self) -> std::io::Result<ExitStatus> {
-        panic!("Dummy runtime is not implemented yet");
-    }
-
-    fn test(_config: &Config) -> anyhow::Result<()> {
+impl Dummy {
+    pub fn test(_config: &Config) -> anyhow::Result<()> {
         Ok(())
     }
 
-    fn offer_template(config: &Config) -> anyhow::Result<OfferTemplate> {
+    pub fn offer_template(config: &Config) -> anyhow::Result<OfferTemplate> {
         let template = offer_template::template(config)?;
         if let Ok(Some(overrides)) = Dummy::read_overrides() {
             Ok(template.patch(overrides))
         } else {
             Ok(template)
+        }
+    }
+    pub fn parse_config(config: &Option<Value>) -> anyhow::Result<Config> {
+        match config {
+            None => Ok(Config::default()),
+            Some(config) => Ok(serde_json::from_value(config.clone())?),
         }
     }
 }

@@ -2,16 +2,12 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io;
 use std::io::Write;
-use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::Arc;
 use actix::prelude::*;
-use anyhow::Context;
 use chrono::Utc;
 use clap::Parser;
 use futures::prelude::*;
-use process::Runtime;
-use tokio::select;
 use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender, Mutex};
 use ya_client_model::activity::activity_state::*;
 use ya_client_model::activity::{ActivityUsage, CommandResult, ExeScriptCommandResult};
@@ -24,6 +20,7 @@ use ya_transfer::transfer::{Shutdown, TransferService, TransferServiceContext};
 use crate::agreement::AgreementDesc;
 use crate::cli::*;
 use crate::logger::*;
+use crate::process::dummy::{Config, Dummy};
 use crate::signal::SignalMonitor;
 
 mod agreement;
@@ -70,6 +67,7 @@ async fn set_usage_msg(report_service: &Endpoint, activity_id: &str, current_usa
     }
 }
 
+#[allow(unused)]
 async fn set_terminate_state_msg(
     report_service: &Endpoint,
     activity_id: &str,
@@ -133,8 +131,10 @@ async fn try_main() -> anyhow::Result<()> {
 }
 
 async fn handle_cli(cli: Cli, signal_receiver: Receiver<Signal>) -> anyhow::Result<()> {
+    let runtime_config = Dummy::parse_config(&cli.runtime_config)?;
+
     match cli.runtime.to_lowercase().as_str() {
-        "dummy" => run::<process::dummy::Dummy>(cli, signal_receiver).await,
+        "dummy" => run(cli, signal_receiver, runtime_config).await,
         _ => {
             let err = anyhow::format_err!("Unsupported framework {}", cli.runtime);
             log::error!("{}", err);
@@ -155,20 +155,17 @@ struct ExeUnitContext {
     pub activity_id: String,
     pub report_url: String,
 
-    pub agreement: AgreementDesc,
     pub transfers: Addr<TransferService>,
     pub batches: Rc<RefCell<HashMap<String, Vec<ExeScriptCommandResult>>>>,
-
-    pub model_path: Option<PathBuf>,
 }
 
-async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
+async fn run(
     cli: Cli,
     mut signal_receiver: Receiver<Signal>,
+    runtime_config: Config
 ) -> anyhow::Result<()> {
     dotenv::dotenv().ok();
 
-    let runtime_config = RUNTIME::parse_config(&cli.runtime_config)?;
     log::info!("Runtime config: {runtime_config:?}");
 
     let (exe_unit_url, report_url, activity_id, args) = match &cli.command {
@@ -184,15 +181,13 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
             args,
         ),
         Command::OfferTemplate => {
-            let offer_template = RUNTIME::offer_template(&runtime_config)?;
+            let offer_template = Dummy::offer_template(&runtime_config)?;
             let offer_template = serde_json::to_string_pretty(&offer_template)?;
             io::stdout().write_all(offer_template.as_bytes())?;
             return Ok(());
         }
-        Command::Test => return RUNTIME::test(&runtime_config),
+        Command::Test => return Dummy::test(&runtime_config),
     };
-
-    let runtime_config = Box::pin(runtime_config);
 
     let agreement_path = args.agreement.clone();
 
@@ -226,7 +221,6 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
     let ctx = ExeUnitContext {
         activity_id: activity_id.clone(),
         report_url: report_url.clone(),
-        agreement,
         transfers: TransferService::new(TransferServiceContext {
             work_dir: args.work_dir.clone(),
             cache_dir: args.cache_dir.clone(),
@@ -234,7 +228,6 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
         })
         .start(),
         batches: Rc::new(RefCell::new(Default::default())),
-        model_path: None,
     };
 
     let current_usage = Arc::new(Mutex::new(vec![0.0, 0.0]));
@@ -316,10 +309,12 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                             args,
                             capture,
                         } => {
+                            //mark capture as unused
+                            let _capture = capture;
+                            log::debug!("Parameter capture ignored");
+
                             let command = entry_point;
                             log::info!("Receive command {command} with args {}", args.join(" "));
-                            //let capture = capture;
-                            log::debug!("Parameter capture ignored");
 
                             if command == "set_hash" {
                                 {
