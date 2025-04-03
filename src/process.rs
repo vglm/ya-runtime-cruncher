@@ -1,12 +1,9 @@
 use anyhow::Context;
 use async_trait::async_trait;
 use bytes::{Buf, BytesMut};
-use futures::TryFutureExt;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
-use tokio::{io::BufReader, process::Child};
-use tokio_stream::StreamExt;
-use tokio_util::codec::{Decoder, FramedRead};
+use tokio_util::codec::Decoder;
 
 use std::cell::RefCell;
 use std::env::current_exe;
@@ -21,7 +18,6 @@ use std::task::Poll;
 
 use ya_agreement_utils::OfferTemplate;
 
-use crate::offer_template::{self, gpu_detection};
 
 pub mod dummy;
 
@@ -48,11 +44,11 @@ pub(crate) trait Runtime: Sized {
 
     async fn wait(&mut self) -> std::io::Result<ExitStatus>;
 
-    fn test(config: &Self::CONFIG) -> anyhow::Result<()> {
+    fn test(_config: &Self::CONFIG) -> anyhow::Result<()> {
         panic!("unimplemented test");
     }
 
-    fn offer_template(config: &Self::CONFIG) -> anyhow::Result<OfferTemplate> {
+    fn offer_template(_config: &Self::CONFIG) -> anyhow::Result<OfferTemplate> {
         panic!("unimplemented test");
     }
 }
@@ -109,20 +105,6 @@ impl<RUNTIME: Runtime + Clone + 'static> ProcessController<RUNTIME> {
         Ok(())
     }
 
-    pub async fn start(
-        &self,
-        model: Option<PathBuf>,
-        config: RUNTIME::CONFIG,
-    ) -> anyhow::Result<()> {
-        let child = RUNTIME::start(model, config)
-            .inspect_err(|err| log::error!("Failed to start process. Err {err}"))
-            .await?;
-
-        self.inner
-            .replace(ProcessControllerInner::Working { child });
-
-        Ok(())
-    }
 }
 
 impl<T: Runtime> Future for ProcessController<T> {
@@ -149,25 +131,6 @@ impl Default for LossyLinesCodec {
             max_length: usize::MAX,
         }
     }
-}
-
-pub type OutputLines = Pin<Box<dyn futures::Stream<Item = anyhow::Result<String>> + Send>>;
-
-/// Reads process stdout and stderr using `LossyLinesCodec`
-pub fn process_output(child: &mut Child) -> anyhow::Result<OutputLines> {
-    let stdout = child
-        .stdout
-        .take()
-        .context("Failed to access process stdout")?;
-    let stderr = child
-        .stderr
-        .take()
-        .context("Failed to access process stderr")?;
-
-    let stdout = FramedRead::new(BufReader::new(stdout), LossyLinesCodec::default());
-    let stderr = FramedRead::new(BufReader::new(stderr), LossyLinesCodec::default());
-
-    Ok(futures::StreamExt::boxed(stdout.merge(stderr)))
 }
 
 /// Decodes lines as UTF-8 (lossly) up to `max_length` characters per line.

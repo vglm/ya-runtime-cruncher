@@ -1,13 +1,9 @@
 use std::fs;
 use std::path::PathBuf;
-use std::process::{ExitStatus, Stdio};
-use std::sync::Arc;
+use std::process::ExitStatus;
 
 use async_trait::async_trait;
 use serde::Deserialize;
-use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::process::{Child, Command};
-use tokio::sync::Mutex;
 
 use ya_agreement_utils::OfferTemplate;
 
@@ -19,11 +15,6 @@ const OFFER_OVERRIDE_FILE_PATH_ENV: &str = "OFFER_OVERRIDE_FILE_PATH";
 
 #[derive(Clone)]
 pub struct Dummy {
-    child: Arc<Mutex<Child>>,
-}
-
-fn dummy_filename() -> String {
-    format!("dummy{}", std::env::consts::EXE_SUFFIX)
 }
 
 #[derive(Deserialize, Clone, Debug, Default)]

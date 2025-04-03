@@ -15,17 +15,11 @@ use futures::prelude::*;
 use process::Runtime;
 use tokio::select;
 use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender, Mutex};
-use tokio::time::sleep;
 use ya_client_model::activity::activity_state::*;
 use ya_client_model::activity::{ActivityUsage, CommandResult, ExeScriptCommandResult};
 use ya_client_model::activity::{CommandOutput, ExeScriptCommand};
 use ya_core_model::activity;
 use ya_core_model::activity::RpcMessageError;
-use ya_counters::error::CounterError;
-use ya_counters::message::GetCounters;
-use ya_counters::service::{CountersService, CountersServiceBuilder};
-use ya_counters::TimeCounter;
-use ya_gsb_http_proxy::gsb_to_http::GsbToHttpProxy;
 use ya_service_bus::typed::{self as gsb, Endpoint};
 use ya_transfer::transfer::{Shutdown, TransferService, TransferServiceContext};
 
@@ -149,7 +143,7 @@ async fn try_main() -> anyhow::Result<()> {
     log::debug!("Raw CLI args: {:?}", std::env::args_os());
     let cli = Cli::try_parse()?;
 
-    let (signal_sender, mut signal_receiver) = mpsc::channel::<Signal>(1);
+    let (signal_sender, signal_receiver) = mpsc::channel::<Signal>(1);
 
     tokio::task::spawn_local(async move {
         handle_signals(signal_sender)
@@ -284,7 +278,6 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
             let batch = batch.clone();
             let batch_id = exec.batch_id.clone();
             let batch_id_ = exec.batch_id.clone();
-            let runtime_config = runtime_config.clone();
 
             {
                 let _ = ctx
@@ -292,7 +285,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                     .borrow_mut()
                     .insert(exec.batch_id.clone(), vec![]);
             }
-            let mut ctx = ctx.clone();
+            let ctx = ctx.clone();
             let script_future = async move {
                 let mut result = Vec::new();
                 for exe in &exec.exe_script {
