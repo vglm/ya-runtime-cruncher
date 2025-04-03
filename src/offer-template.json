@@ -1,6 +1,7 @@
 {
   "properties": {
     "golem.com.usage.vector":[
+      "golem.usage.tera-hash",
       "golem.usage.duration_sec"
     ]},
   "constraints":""

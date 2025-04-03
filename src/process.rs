@@ -23,7 +23,6 @@ use ya_agreement_utils::OfferTemplate;
 
 use crate::offer_template::{self, gpu_detection};
 
-pub mod automatic;
 pub mod dummy;
 
 #[allow(unused)]

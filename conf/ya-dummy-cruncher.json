@@ -12,16 +12,16 @@
         "properties": {},
         "config": {
             "counters": {
+                "golem.usage.duration_sec": {
+                    "name": "duration",
+                    "description": "EnvPerHour",
+                    "price": true
+                },
                 "golem.usage.tera-hash": {
                     "name": "tera-hash",
                     "description": "NumTHashes",
                     "price": true
                 },
-                "golem.usage.duration_sec": {
-                    "name": "duration",
-                    "description": "EnvPerHour",
-                    "price": true
-                }
             }
         }
     }
