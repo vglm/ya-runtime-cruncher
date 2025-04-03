@@ -26,7 +26,6 @@ use ya_transfer::transfer::{Shutdown, TransferService, TransferServiceContext};
 use crate::agreement::AgreementDesc;
 use crate::cli::*;
 use crate::logger::*;
-use crate::process::ProcessController;
 use crate::signal::SignalMonitor;
 
 mod agreement;
@@ -38,8 +37,8 @@ mod signal;
 
 pub type Signal = &'static str;
 
-async fn send_state<T: process::Runtime>(
-    ctx: &ExeUnitContext<T>,
+async fn send_state(
+    ctx: &ExeUnitContext,
     new_state: ActivityState,
 ) -> anyhow::Result<()> {
     Ok(gsb::service(ctx.report_url.clone())
@@ -51,26 +50,6 @@ async fn send_state<T: process::Runtime>(
         .await??)
 }
 
-async fn activity_loop<T: process::Runtime + Clone + Unpin + 'static>(
-    report_url: &str,
-    activity_id: &str,
-    process: ProcessController<T>,
-) -> anyhow::Result<()> {
-    let report_service = gsb::service(report_url);
-
-    while let Some(()) = process.report() {
-        select! {
-            _ = tokio::time::sleep(Duration::from_secs(1)) => {},
-            status = process.clone() => {
-                set_terminate_state_msg(&report_service, activity_id, Some("process exit".to_string()), Some(format!("status: {:?}", status))).await;
-                log::error!("process exit: {:?}", status);
-                anyhow::bail!("Runtime exited");
-            }
-
-        }
-    }
-    Ok(())
-}
 
 async fn set_usage_msg(report_service: &Endpoint, activity_id: &str, current_usage: Vec<f64>) {
     let timestamp = Utc::now().timestamp();
@@ -174,14 +153,12 @@ async fn handle_signals(signal_receiver: Sender<Signal>) -> anyhow::Result<()> {
 }
 
 #[derive(Clone)]
-struct ExeUnitContext<T: Runtime + 'static> {
+struct ExeUnitContext {
     pub activity_id: String,
     pub report_url: String,
 
     pub agreement: AgreementDesc,
     pub transfers: Addr<TransferService>,
-    pub process_controller: ProcessController<T>,
-
     pub batches: Rc<RefCell<HashMap<String, Vec<ExeScriptCommandResult>>>>,
 
     pub model_path: Option<PathBuf>,
@@ -258,12 +235,9 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
             ..TransferServiceContext::default()
         })
         .start(),
-        process_controller: process::ProcessController::<RUNTIME>::new(),
         batches: Rc::new(RefCell::new(Default::default())),
         model_path: None,
     };
-
-    let activity_pinger = activity_loop(report_url, activity_id, ctx.process_controller.clone());
 
     let current_usage = Arc::new(Mutex::new(vec![0.0, 0.0]));
 
@@ -321,9 +295,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                         }
                         ExeScriptCommand::Terminate { .. } => {
                             log::info!("Raw Terminate command. Stopping runtime",);
-                            if let Err(err) = ctx.process_controller.stop().await {
-                                log::error!("Failed to terminate process. Err {err}");
-                            }
+
                             ctx.transfers.send(Shutdown {}).await.ok();
                             send_state(
                                 &ctx,
@@ -353,7 +325,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
 
                             if command == "set_hash" {
                                 {
-                                    if let Some(tera_hash) = args.get(0) {
+                                    if let Some(tera_hash) = args.first() {
                                         if let Ok(tera_hash) = tera_hash.parse::<f64>() {
                                             current_usage.lock().await[tera_hash_pos] = tera_hash;
                                         }
@@ -411,7 +383,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
             .map_err(move |e| {
                 log::error!("ExeScript failure: {e:?}");
                 let mut bind_batch = batch.borrow_mut();
-                let result = bind_batch.entry(batch_id_).or_insert(vec![]);
+                let result = bind_batch.entry(batch_id_).or_default();
 
                 let index = result.len() as u32;
                 result.push(ExeScriptCommandResult {
@@ -445,19 +417,11 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
     )
     .await?;
 
-    select! {
-        res = activity_pinger => { res }
-        signal = signal_receiver.recv() => {
-            if let Some(signal) = signal {
-                log::debug!("Received signal {signal}. Stopping runtime");
+    let signal = signal_receiver.recv().await;
 
-                ctx.process_controller.stop().await
-                    .context("Stopping runtime error")?;
-            }
-            Ok(())
-        },
+    if let Some(signal) = signal {
+        log::debug!("Received signal {signal}. Stopping runtime");
     }
-    .context("Activity loop error")?;
 
     log::info!("Finished waiting for activity loop.");
     send_state(
