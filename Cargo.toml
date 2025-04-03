@@ -6,11 +6,9 @@ edition = "2021"
 [workspace]
 members = [
     "gpu-detection",
-    "runtimes/dummy",
 ]
 
 [dependencies]
-ya-gsb-http-proxy = { git = "https://github.com/golemfactory/yagna.git", rev = "925818eb7267602c09599be023a40bec0a49c5fb" }
 ya-core-model = { git = "https://github.com/golemfactory/yagna.git", rev = "925818eb7267602c09599be023a40bec0a49c5fb", features = ["activity", "appkey"] }
 ya-runtime-api = { git = "https://github.com/golemfactory/yagna.git", rev = "925818eb7267602c09599be023a40bec0a49c5fb", features = ["server"] }
 ya-service-bus = "0.7.3"
@@ -18,39 +16,20 @@ ya-client-model = { git = "https://github.com/golemfactory/ya-client.git", rev =
 
 ya-agreement-utils = "0.5"
 ya-transfer = { git = "https://github.com/golemfactory/yagna.git", rev = "925818eb7267602c09599be023a40bec0a49c5fb" }
-ya-counters = { git = "https://github.com/golemfactory/yagna.git", rev = "925818eb7267602c09599be023a40bec0a49c5fb" }
 gpu-detection = { path = "gpu-detection" }
 
 actix = "0.13"
 actix-rt = "2"
-async-trait = "0.1"
 log = "0.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 clap = { version = "4", features = ["derive", "env"] }
 dotenv = "0.15"
 anyhow = "1.0"
-env_logger = "0.11"
-flexi_logger = "0.29.8"
-yansi = "1.0"
+flexi_logger = "0.30.1"
 chrono = "0.4.34"
 tokio = { version = "1.32", features = ["macros", "signal"] }
-tokio-stream = { version = "0.1", features = ["io-util"] }
-tokio-util = { version = "0.7", features = ["codec"] }
 futures = "0.3"
-regex = "1"
-reqwest = { version = "0.12", features = ["blocking", "json"] }
-async-stream = "0.3"
-http = "1.1"
-bytes = "1.5"
-humantime = "2.1"
-humantime-serde = "1.1"
-
-[dev-dependencies]
-assert_cmd = "2.0"
-predicates = "3.1"
-test-case = "3.3"
-
 
 [build-dependencies]
 static_vcruntime = "2.0"
