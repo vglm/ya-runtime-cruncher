@@ -126,9 +126,10 @@ async fn set_terminate_state_msg(
 async fn main() {
     let panic_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |e| {
-        log::error!("AI Runtime panic: {e}");
+        log::error!("Cruncher Runtime panic: {e}");
         panic_hook(e)
     }));
+
 
     if let Err(error) = start_file_logger() {
         start_logger().expect("Failed to start logging");
@@ -148,7 +149,7 @@ async fn try_main() -> anyhow::Result<()> {
     log::debug!("Raw CLI args: {:?}", std::env::args_os());
     let cli = Cli::try_parse()?;
 
-    let (signal_sender, signal_receiver) = mpsc::channel::<Signal>(1);
+    let (signal_sender, mut signal_receiver) = mpsc::channel::<Signal>(1);
 
     tokio::task::spawn_local(async move {
         handle_signals(signal_sender)
@@ -171,6 +172,7 @@ async fn handle_cli(cli: Cli, signal_receiver: Receiver<Signal>) -> anyhow::Resu
         }
     }
 }
+
 
 async fn handle_signals(signal_receiver: Sender<Signal>) -> anyhow::Result<()> {
     let signal = SignalMonitor::default().recv().await?;
@@ -228,6 +230,29 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
 
     let agreement = AgreementDesc::load(agreement_path)?;
 
+    if agreement.counters.len() != 2 {
+        log::error!("Invalid agreement. Expected 2 usage counters");
+        anyhow::bail!("Invalid agreement. Expected 2 usage counters");
+    }
+    let mut duration_sec_pos = agreement.counters.len();
+    let mut tera_hash_pos = agreement.counters.len();
+    for counter in agreement.counters.iter().enumerate() {
+        if counter.1 == "golem.usage.duration_sec" {
+            duration_sec_pos = counter.0;
+        } else if counter.1 == "golem.usage.tera-hash" {
+            tera_hash_pos = counter.0;
+        }
+    }
+    if duration_sec_pos < agreement.counters.len() && tera_hash_pos < agreement.counters.len() {
+        log::info!(
+            "Found usage counters: tera-hash={}, duration_sec={}",
+            tera_hash_pos,
+            duration_sec_pos
+        );
+    } else {
+        log::error!("Invalid agreement. Missing usage counters");
+        anyhow::bail!("Invalid agreement. Missing usage counters");
+    }
     //let mut gsb_proxy = GsbToHttpProxy::new("http://localhost:7861/".into());
 
     let ctx = ExeUnitContext {
@@ -247,7 +272,7 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
 
     let activity_pinger = activity_loop(report_url, activity_id, ctx.process_controller.clone());
 
-    let current_usage = Arc::new(Mutex::new(vec![0.0, 0.0, 0.0]));
+    let current_usage = Arc::new(Mutex::new(vec![0.0, 0.0]));
 
     {
         let batch = ctx.batches.clone();
@@ -333,6 +358,28 @@ async fn run<RUNTIME: process::Runtime + Clone + Unpin + 'static>(
                             log::info!("Receive command {command} with args {}", args.join(" "));
                             //let capture = capture;
                             log::debug!("Parameter capture ignored");
+
+                            if command == "set_hash" {
+                                {
+                                    if let Some(tera_hash) = args.get(0) {
+                                        if let Ok(tera_hash) = tera_hash.parse::<f64>() {
+                                            current_usage.lock().await[tera_hash_pos] = tera_hash;
+                                        }
+                                    }
+                                }
+                                set_usage_msg(
+                                    &gsb::service(ctx.report_url.clone()),
+                                    &ctx.activity_id,
+                                    current_usage.lock().await.clone(),
+                                )
+                                .await;
+                            } else {
+                                log::error!("Invalid command for cruncher runtime: {:?}", command);
+                                return Err(RpcMessageError::Activity(format!(
+                                    "invalid command for cruncher runtime: {:?}",
+                                    command
+                                )));
+                            }
 
                             result.push(ExeScriptCommandResult {
                                 index: result.len() as u32,
