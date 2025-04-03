@@ -1,13 +1,13 @@
+use actix::prelude::*;
+use chrono::Utc;
+use clap::Parser;
+use futures::prelude::*;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io;
 use std::io::Write;
 use std::rc::Rc;
 use std::sync::Arc;
-use actix::prelude::*;
-use chrono::Utc;
-use clap::Parser;
-use futures::prelude::*;
 use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender, Mutex};
 use ya_client_model::activity::activity_state::*;
 use ya_client_model::activity::{ActivityUsage, CommandResult, ExeScriptCommandResult};
@@ -32,10 +32,7 @@ mod signal;
 
 pub type Signal = &'static str;
 
-async fn send_state(
-    ctx: &ExeUnitContext,
-    new_state: ActivityState,
-) -> anyhow::Result<()> {
+async fn send_state(ctx: &ExeUnitContext, new_state: ActivityState) -> anyhow::Result<()> {
     Ok(gsb::service(ctx.report_url.clone())
         .call(activity::local::SetState::new(
             ctx.activity_id.clone(),
@@ -44,7 +41,6 @@ async fn send_state(
         ))
         .await??)
 }
-
 
 async fn set_usage_msg(report_service: &Endpoint, activity_id: &str, current_usage: Vec<f64>) {
     let timestamp = Utc::now().timestamp();
@@ -99,7 +95,6 @@ async fn main() {
         panic_hook(e)
     }));
 
-
     if let Err(error) = start_file_logger() {
         start_logger().expect("Failed to start logging");
         log::warn!("Using fallback logging due to an error: {:?}", error);
@@ -143,7 +138,6 @@ async fn handle_cli(cli: Cli, signal_receiver: Receiver<Signal>) -> anyhow::Resu
     }
 }
 
-
 async fn handle_signals(signal_receiver: Sender<Signal>) -> anyhow::Result<()> {
     let signal = SignalMonitor::default().recv().await?;
     log::info!("{} received, Shutting down runtime...", signal);
@@ -162,7 +156,7 @@ struct ExeUnitContext {
 async fn run(
     cli: Cli,
     mut signal_receiver: Receiver<Signal>,
-    runtime_config: Config
+    runtime_config: Config,
 ) -> anyhow::Result<()> {
     dotenv::dotenv().ok();
 

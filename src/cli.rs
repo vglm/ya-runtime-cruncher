@@ -1,13 +1,13 @@
 //! Exe-Unit Cli Definitions
 //!
 
+use crate::process::find_file;
 use clap::{Parser, Subcommand};
 use std::{
     fs::File,
     io::BufReader,
     path::{Path, PathBuf},
 };
-use crate::process::find_file;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]

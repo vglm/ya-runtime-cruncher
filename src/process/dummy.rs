@@ -9,8 +9,7 @@ use crate::offer_template;
 const OFFER_OVERRIDE_FILE_PATH_ENV: &str = "OFFER_OVERRIDE_FILE_PATH";
 
 #[derive(Clone)]
-pub struct Dummy {
-}
+pub struct Dummy {}
 
 #[derive(Deserialize, Clone, Debug, Default)]
 pub(crate) struct Config {

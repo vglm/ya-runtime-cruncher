@@ -1,7 +1,7 @@
+use crate::process::dummy::Config;
 use gpu_detection::model::Gpu;
 use gpu_detection::GpuDetection;
 use ya_agreement_utils::OfferTemplate;
-use crate::process::dummy::Config;
 
 #[allow(unused)]
 pub(crate) fn gpu_detection(config: &Config) -> anyhow::Result<Gpu> {

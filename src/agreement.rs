@@ -41,10 +41,7 @@ mod tests {
     fn test_loading_agreement() {
         let agreement_path = test_agreement_path();
         let desc = AgreementDesc::load(agreement_path).unwrap();
-        let usage = [
-            "golem.usage.tera-hash",
-            "golem.usage.duration_sec",
-        ];
+        let usage = ["golem.usage.tera-hash", "golem.usage.duration_sec"];
 
         assert_eq!(desc.counters[0], usage[0]);
         assert_eq!(desc.counters[1], usage[1]);
