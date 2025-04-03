@@ -12,13 +12,7 @@ use std::{
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 pub struct Cli {
-    /// Runtime binary path
-    #[arg(long, short)]
-    pub binary: Option<PathBuf>,
     /// Runtime package name
-    #[arg(long, short)]
-    pub runtime: String,
-    /// Runtime config. A text in json format or a path to a json file.
     #[arg(long,value_parser = parse_runtime_config)]
     pub runtime_config: Option<serde_json::Value>,
     #[command(subcommand)]

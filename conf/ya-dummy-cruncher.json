@@ -3,11 +3,6 @@
         "name": "dummy",
         "version": "0.1.0",
         "supervisor-path": "ya-runtime-cruncher",
-        "runtime-path": "dummy",
-        "extra-args": [
-            "--runtime",
-            "dummy"
-        ],
         "description": "Dummy ai runtime for testing purposes",
         "properties": {},
         "config": {

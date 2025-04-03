@@ -129,14 +129,7 @@ async fn try_main() -> anyhow::Result<()> {
 async fn handle_cli(cli: Cli, signal_receiver: Receiver<Signal>) -> anyhow::Result<()> {
     let runtime_config = Dummy::parse_config(&cli.runtime_config)?;
 
-    match cli.runtime.to_lowercase().as_str() {
-        "dummy" => run(cli, signal_receiver, runtime_config).await,
-        _ => {
-            let err = anyhow::format_err!("Unsupported framework {}", cli.runtime);
-            log::error!("{}", err);
-            anyhow::bail!(err)
-        }
-    }
+    run(cli, signal_receiver, runtime_config).await
 }
 
 async fn handle_signals(signal_receiver: Sender<Signal>) -> anyhow::Result<()> {
