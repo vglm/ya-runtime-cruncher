@@ -21,7 +21,7 @@
                     "name": "tera-hash",
                     "description": "NumTHashes",
                     "price": true
-                },
+                }
             }
         }
     }
