@@ -31,9 +31,7 @@ impl RuntimeConfig for Config {
 
 #[async_trait]
 impl Runtime for Dummy {
-    type CONFIG = Config;
-
-    async fn start(model: Option<PathBuf>, _config: Self::CONFIG) -> anyhow::Result<Dummy> {
+    async fn start(model: Option<PathBuf>, _config: Config) -> anyhow::Result<Dummy> {
         panic!("Dummy runtime is not implemented yet");
     }
 
@@ -45,11 +43,11 @@ impl Runtime for Dummy {
         panic!("Dummy runtime is not implemented yet");
     }
 
-    fn test(_config: &Self::CONFIG) -> anyhow::Result<()> {
+    fn test(_config: &Config) -> anyhow::Result<()> {
         Ok(())
     }
 
-    fn offer_template(config: &Self::CONFIG) -> anyhow::Result<OfferTemplate> {
+    fn offer_template(config: &Config) -> anyhow::Result<OfferTemplate> {
         let template = offer_template::template(config)?;
         if let Ok(Some(overrides)) = Dummy::read_overrides() {
             Ok(template.patch(overrides))
