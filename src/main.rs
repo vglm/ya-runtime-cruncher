@@ -154,6 +154,134 @@ struct ExeUnitContext {
     pub batches: Rc<RefCell<HashMap<String, Vec<ExeScriptCommandResult>>>>,
 }
 
+async fn prepare_script_future(
+    ctx: ExeUnitContext,
+    exec: activity::Exec,
+    current_usage: Arc<Mutex<Vec<f64>>>,
+    tera_hash_pos: usize,
+) -> Result<String, RpcMessageError> {
+    let mut result = Vec::new();
+    for exe in &exec.exe_script {
+        match exe {
+            ExeScriptCommand::Deploy { .. } => {}
+            ExeScriptCommand::Start { args, .. } => {
+                log::debug!("Raw Start cmd args: {args:?} [ignored]");
+
+                set_usage_msg(
+                    &gsb::service(ctx.report_url.clone()),
+                    &ctx.activity_id,
+                    current_usage.lock().await.clone(),
+                )
+                .await;
+
+                send_state(
+                    &ctx,
+                    ActivityState::from(StatePair(State::Ready, Some(State::Ready))),
+                )
+                .await
+                .map_err(|e| RpcMessageError::Service(e.to_string()))?;
+
+                log::info!("Got start command, changing state of exe unit to ready",);
+                result.push(ExeScriptCommandResult {
+                    index: result.len() as u32,
+                    result: CommandResult::Ok,
+                    stdout: None,
+                    stderr: None,
+                    message: None,
+                    is_batch_finished: true,
+                    event_date: Utc::now(),
+                })
+            }
+            ExeScriptCommand::Terminate { .. } => {
+                log::info!("Raw Terminate command. Stopping runtime",);
+
+                ctx.transfers.send(Shutdown {}).await.ok();
+                send_state(
+                    &ctx,
+                    ActivityState::from(StatePair(State::Terminated, None)),
+                )
+                .await
+                .map_err(|e| RpcMessageError::Service(e.to_string()))?;
+                result.push(ExeScriptCommandResult {
+                    index: result.len() as u32,
+                    result: CommandResult::Ok,
+                    stdout: None,
+                    stderr: None,
+                    message: None,
+                    is_batch_finished: false,
+                    event_date: Utc::now(),
+                });
+            }
+            ExeScriptCommand::Run {
+                entry_point,
+                args,
+                capture,
+            } => {
+                //mark capture as unused
+                let _capture = capture;
+                log::debug!("Parameter capture ignored");
+
+                let command = entry_point;
+                log::info!("Receive command {command} with args {}", args.join(" "));
+
+                if command == "set_hash" {
+                    {
+                        if let Some(tera_hash) = args.first() {
+                            if let Ok(tera_hash) = tera_hash.parse::<f64>() {
+                                current_usage.lock().await[tera_hash_pos] = tera_hash;
+                            }
+                        }
+                    }
+                    set_usage_msg(
+                        &gsb::service(ctx.report_url.clone()),
+                        &ctx.activity_id,
+                        current_usage.lock().await.clone(),
+                    )
+                    .await;
+                } else {
+                    log::error!("Invalid command for cruncher runtime: {:?}", command);
+                    return Err(RpcMessageError::Activity(format!(
+                        "invalid command for cruncher runtime: {:?}",
+                        command
+                    )));
+                }
+
+                result.push(ExeScriptCommandResult {
+                    index: result.len() as u32,
+                    result: CommandResult::Ok,
+                    stdout: Some(CommandOutput::Str("".to_string())),
+                    stderr: Some(CommandOutput::Str("".to_string())),
+                    message: Some("Ok".to_string()),
+                    is_batch_finished: true,
+                    event_date: Utc::now(),
+                });
+            }
+            cmd => {
+                log::error!("invalid command for ai runtime: {:?}", cmd);
+                return Err(RpcMessageError::Activity(format!(
+                    "invalid command for ai runtime: {:?}",
+                    cmd
+                )));
+            }
+        }
+    }
+    log::info!(
+        "got exec {}, batch_id={}, script={:?}",
+        exec.activity_id,
+        exec.batch_id,
+        exec.exe_script
+    );
+
+    {
+        let _ = ctx
+            .batches
+            .borrow_mut()
+            .insert(exec.batch_id.clone(), result);
+    }
+
+    Ok(exec.batch_id)
+}
+
 async fn run(
     cli: Cli,
     mut signal_receiver: Receiver<Signal>,
@@ -242,144 +370,24 @@ async fn run(
                     .insert(exec.batch_id.clone(), vec![]);
             }
             let ctx = ctx.clone();
-            let script_future = async move {
-                let mut result = Vec::new();
-                for exe in &exec.exe_script {
-                    match exe {
-                        ExeScriptCommand::Deploy { .. } => {}
-                        ExeScriptCommand::Start { args, .. } => {
-                            log::debug!("Raw Start cmd args: {args:?} [ignored]");
+            let script_future =
+                prepare_script_future(ctx.clone(), exec, current_usage.clone(), tera_hash_pos)
+                    .map_err(move |e| {
+                        log::error!("ExeScript failure: {e:?}");
+                        let mut bind_batch = batch.borrow_mut();
+                        let result = bind_batch.entry(batch_id_).or_default();
 
-                            set_usage_msg(
-                                &gsb::service(ctx.report_url.clone()),
-                                &ctx.activity_id,
-                                current_usage.lock().await.clone(),
-                            )
-                            .await;
-
-                            send_state(
-                                &ctx,
-                                ActivityState::from(StatePair(State::Ready, Some(State::Ready))),
-                            )
-                            .await
-                            .map_err(|e| RpcMessageError::Service(e.to_string()))?;
-
-                            log::info!("Got start command, changing state of exe unit to ready",);
-                            result.push(ExeScriptCommandResult {
-                                index: result.len() as u32,
-                                result: CommandResult::Ok,
-                                stdout: None,
-                                stderr: None,
-                                message: None,
-                                is_batch_finished: true,
-                                event_date: Utc::now(),
-                            })
-                        }
-                        ExeScriptCommand::Terminate { .. } => {
-                            log::info!("Raw Terminate command. Stopping runtime",);
-
-                            ctx.transfers.send(Shutdown {}).await.ok();
-                            send_state(
-                                &ctx,
-                                ActivityState::from(StatePair(State::Terminated, None)),
-                            )
-                            .await
-                            .map_err(|e| RpcMessageError::Service(e.to_string()))?;
-                            result.push(ExeScriptCommandResult {
-                                index: result.len() as u32,
-                                result: CommandResult::Ok,
-                                stdout: None,
-                                stderr: None,
-                                message: None,
-                                is_batch_finished: false,
-                                event_date: Utc::now(),
-                            });
-                        }
-                        ExeScriptCommand::Run {
-                            entry_point,
-                            args,
-                            capture,
-                        } => {
-                            //mark capture as unused
-                            let _capture = capture;
-                            log::debug!("Parameter capture ignored");
-
-                            let command = entry_point;
-                            log::info!("Receive command {command} with args {}", args.join(" "));
-
-                            if command == "set_hash" {
-                                {
-                                    if let Some(tera_hash) = args.first() {
-                                        if let Ok(tera_hash) = tera_hash.parse::<f64>() {
-                                            current_usage.lock().await[tera_hash_pos] = tera_hash;
-                                        }
-                                    }
-                                }
-                                set_usage_msg(
-                                    &gsb::service(ctx.report_url.clone()),
-                                    &ctx.activity_id,
-                                    current_usage.lock().await.clone(),
-                                )
-                                .await;
-                            } else {
-                                log::error!("Invalid command for cruncher runtime: {:?}", command);
-                                return Err(RpcMessageError::Activity(format!(
-                                    "invalid command for cruncher runtime: {:?}",
-                                    command
-                                )));
-                            }
-
-                            result.push(ExeScriptCommandResult {
-                                index: result.len() as u32,
-                                result: CommandResult::Ok,
-                                stdout: Some(CommandOutput::Str("".to_string())),
-                                stderr: Some(CommandOutput::Str("".to_string())),
-                                message: Some("Ok".to_string()),
-                                is_batch_finished: true,
-                                event_date: Utc::now(),
-                            });
-                        }
-                        cmd => {
-                            log::error!("invalid command for ai runtime: {:?}", cmd);
-                            return Err(RpcMessageError::Activity(format!(
-                                "invalid command for ai runtime: {:?}",
-                                cmd
-                            )));
-                        }
-                    }
-                }
-                log::info!(
-                    "got exec {}, batch_id={}, script={:?}",
-                    exec.activity_id,
-                    exec.batch_id,
-                    exec.exe_script
-                );
-
-                {
-                    let _ = ctx
-                        .batches
-                        .borrow_mut()
-                        .insert(exec.batch_id.clone(), result);
-                }
-
-                Ok(exec.batch_id)
-            }
-            .map_err(move |e| {
-                log::error!("ExeScript failure: {e:?}");
-                let mut bind_batch = batch.borrow_mut();
-                let result = bind_batch.entry(batch_id_).or_default();
-
-                let index = result.len() as u32;
-                result.push(ExeScriptCommandResult {
-                    index,
-                    result: CommandResult::Error,
-                    stdout: None,
-                    stderr: None,
-                    message: Some(e.to_string()),
-                    is_batch_finished: true,
-                    event_date: Utc::now(),
-                });
-            });
+                        let index = result.len() as u32;
+                        result.push(ExeScriptCommandResult {
+                            index,
+                            result: CommandResult::Error,
+                            stdout: None,
+                            stderr: None,
+                            message: Some(e.to_string()),
+                            is_batch_finished: true,
+                            event_date: Utc::now(),
+                        });
+                    });
             tokio::task::spawn_local(script_future);
             future::ok(batch_id)
         });
