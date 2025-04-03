@@ -24,10 +24,6 @@ impl Config {
 }
 
 impl Dummy {
-    pub fn test(_config: &Config) -> anyhow::Result<()> {
-        Ok(())
-    }
-
     pub fn offer_template(config: &Config) -> anyhow::Result<OfferTemplate> {
         let template = offer_template::template(config)?;
         if let Ok(Some(overrides)) = Dummy::read_overrides() {

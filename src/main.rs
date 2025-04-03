@@ -13,6 +13,7 @@ use ya_client_model::activity::activity_state::*;
 use ya_client_model::activity::{ActivityUsage, CommandResult, ExeScriptCommandResult};
 use ya_client_model::activity::{CommandOutput, ExeScriptCommand};
 use ya_core_model::activity;
+use ya_core_model::activity::exeunit::bus_id;
 use ya_core_model::activity::RpcMessageError;
 use ya_service_bus::typed::{self as gsb, Endpoint};
 use ya_transfer::transfer::{Shutdown, TransferService, TransferServiceContext};
@@ -168,19 +169,16 @@ async fn run(
             report_url,
             args,
             ..
-        } => (
-            ya_core_model::activity::exeunit::bus_id(service_id),
-            report_url,
-            service_id,
-            args,
-        ),
+        } => (bus_id(service_id), report_url, service_id, args),
         Command::OfferTemplate => {
             let offer_template = Dummy::offer_template(&runtime_config)?;
             let offer_template = serde_json::to_string_pretty(&offer_template)?;
             io::stdout().write_all(offer_template.as_bytes())?;
             return Ok(());
         }
-        Command::Test => return Dummy::test(&runtime_config),
+        Command::Test => {
+            return Ok(());
+        }
     };
 
     let agreement_path = args.agreement.clone();
@@ -210,7 +208,6 @@ async fn run(
         log::error!("Invalid agreement. Missing usage counters");
         anyhow::bail!("Invalid agreement. Missing usage counters");
     }
-    //let mut gsb_proxy = GsbToHttpProxy::new("http://localhost:7861/".into());
 
     let ctx = ExeUnitContext {
         activity_id: activity_id.clone(),
@@ -398,6 +395,7 @@ async fn run(
             }
         });
     };
+    //note that we are here immediately after the bind to gsb
     send_state(
         &ctx,
         ActivityState::from(StatePair(State::Initialized, None)),
