@@ -35,7 +35,7 @@ jobs:
         env:
           GOLEM_ACCEPT_TOS: yes
           BATCH_MODE: yes
-          YA_INSTALLER_CORE: pre-rel-v0.17.1-plugin3
+          YA_INSTALLER_CORE: pre-rel-v0.17.1-plugin4
 
       - name: Run yagna provider part 1
         run: |
@@ -68,7 +68,6 @@ jobs:
 
       - name: Install plugin
         run: |
-          cp target/debug/dummy conf/dummy
           cp target/debug/ya-runtime-cruncher conf/ya-runtime-cruncher
 
       - name: Run yagna provider part 2
