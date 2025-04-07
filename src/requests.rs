@@ -65,3 +65,73 @@ pub async fn send_work_target(target: WorkTarget) -> Result<(), RpcMessageError>
         )))
     }
 }
+
+// Async function to post WorkTarget
+pub async fn start_work() -> Result<(), RpcMessageError> {
+    let client = reqwest::Client::new();
+    let api_base = get_client_api_url();
+
+    let target_url = format!("{api_base}/api/runners/start");
+    let res = client
+        .post(&target_url) // Replace with your actual endpoint
+        .send()
+        .await
+        .map_err(|e| {
+            log::error!("Failed to send request: {}", e);
+            RpcMessageError::Activity(format!("Failed to send request {e}"))
+        })?;
+
+    if res.status().is_success() {
+        let message = res.text().await.unwrap_or("".to_string());
+        log::info!("Successfully started runners with message: {}", message);
+        Ok(())
+    } else {
+        let status = res.status();
+        log::error!("Failed to start runners: {} - url: {}", status, target_url);
+        let text = if let Ok(text) = res.text().await {
+            log::error!("Response: {}", text);
+            text
+        } else {
+            "".to_string()
+        };
+        Err(RpcMessageError::Activity(format!(
+            "Failed to start runners: {} {}",
+            status, text
+        )))
+    }
+}
+
+// Async function to post WorkTarget
+pub async fn stop_work() -> Result<(), RpcMessageError> {
+    let client = reqwest::Client::new();
+    let api_base = get_client_api_url();
+
+    let target_url = format!("{api_base}/api/runners/stop");
+    let res = client
+        .post(&target_url) // Replace with your actual endpoint
+        .send()
+        .await
+        .map_err(|e| {
+            log::error!("Failed to send request: {}", e);
+            RpcMessageError::Activity(format!("Failed to send request {e}"))
+        })?;
+
+    if res.status().is_success() {
+        let message = res.text().await.unwrap_or("".to_string());
+        log::info!("Successfully stopped runners with message: {}", message);
+        Ok(())
+    } else {
+        let status = res.status();
+        log::error!("Failed to stop runners: {} - url: {}", status, target_url);
+        let text = if let Ok(text) = res.text().await {
+            log::error!("Response: {}", text);
+            text
+        } else {
+            "".to_string()
+        };
+        Err(RpcMessageError::Activity(format!(
+            "Failed to stop runners: {} {}",
+            status, text
+        )))
+    }
+}

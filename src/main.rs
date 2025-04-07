@@ -21,7 +21,7 @@ use ya_transfer::transfer::{Shutdown, TransferService, TransferServiceContext};
 use crate::agreement::AgreementDesc;
 use crate::cli::*;
 use crate::logger::*;
-use crate::requests::{init_client_api_url, send_work_target, WorkTarget};
+use crate::requests::{init_client_api_url, send_work_target, start_work, stop_work, WorkTarget};
 use crate::signal::SignalMonitor;
 
 mod agreement;
@@ -283,6 +283,10 @@ async fn prepare_script_future(
                     log::info!("Setting work target to {:?}", sanitized);
 
                     send_work_target(sanitized).await?;
+                } else if command == "start_work" {
+                    start_work().await?
+                } else if command == "stop_work" {
+                    stop_work().await?
                 } else {
                     log::error!("Invalid command for cruncher runtime: {:?}", command);
                     return Err(RpcMessageError::Activity(format!(

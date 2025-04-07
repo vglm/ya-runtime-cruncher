@@ -89,6 +89,7 @@ jobs:
           EXE_UNIT_PATH: conf/ya-*.json
           YAGNA_APPKEY: p4e4rov2id2er123
           NODE_NAME: DummyNode
+          CRUNCHER_CLIENT_API_URL: http://127.0.0.1:24024
 
       - name: Run requestor part 2
         run: |
