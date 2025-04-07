@@ -21,7 +21,7 @@ use ya_transfer::transfer::{Shutdown, TransferService, TransferServiceContext};
 use crate::agreement::AgreementDesc;
 use crate::cli::*;
 use crate::logger::*;
-use crate::process::dummy::{Config, Dummy};
+use crate::requests::{init_client_api_url, send_work_target, WorkTarget};
 use crate::signal::SignalMonitor;
 
 mod agreement;
@@ -29,6 +29,7 @@ mod cli;
 mod logger;
 mod offer_template;
 mod process;
+mod requests;
 mod signal;
 
 pub type Signal = &'static str;
@@ -127,9 +128,7 @@ async fn try_main() -> anyhow::Result<()> {
 }
 
 async fn handle_cli(cli: Cli, signal_receiver: Receiver<Signal>) -> anyhow::Result<()> {
-    let runtime_config = Dummy::parse_config(&cli.runtime_config)?;
-
-    run(cli, signal_receiver, runtime_config).await
+    run(cli, signal_receiver).await
 }
 
 async fn handle_signals(signal_receiver: Sender<Signal>) -> anyhow::Result<()> {
@@ -142,7 +141,6 @@ async fn handle_signals(signal_receiver: Sender<Signal>) -> anyhow::Result<()> {
 struct ExeUnitContext {
     pub activity_id: String,
     pub report_url: String,
-
     pub transfers: Addr<TransferService>,
     pub batches: Rc<RefCell<HashMap<String, Vec<ExeScriptCommandResult>>>>,
 }
@@ -231,6 +229,60 @@ async fn prepare_script_future(
                         current_usage.lock().await.clone(),
                     )
                     .await;
+                } else if command == "set_work_target" {
+                    let first_arg = args.first().ok_or_else(|| {
+                        RpcMessageError::Activity("Missing work target arg".to_string())
+                    })?;
+
+                    let work_target = if first_arg == "factory" {
+                        let sec_arg = args.get(1).ok_or_else(|| {
+                            RpcMessageError::Activity("Missing factory arg".to_string())
+                        })?;
+                        WorkTarget::Factory(sec_arg.to_string())
+                    } else if first_arg == "public_key_base" {
+                        let sec_arg = args.get(1).ok_or_else(|| {
+                            RpcMessageError::Activity("Missing public key base arg".to_string())
+                        })?;
+                        WorkTarget::PublicKeyBase(sec_arg.to_string())
+                    } else if first_arg == "default" {
+                        WorkTarget::Default
+                    } else {
+                        return Err(RpcMessageError::Activity("Unknown work target".to_string()));
+                    };
+
+                    //sanitize command input for better security
+
+                    let sanitized = match work_target {
+                        WorkTarget::Factory(f) => {
+                            let slice = hex::decode(f.replace("0x", "")).map_err(|_| {
+                                RpcMessageError::Activity("Invalid factory public key".to_string())
+                            })?;
+                            if slice.len() != 20 {
+                                return Err(RpcMessageError::Activity(
+                                    "Wrong factory data len".to_string(),
+                                ));
+                            };
+                            let factory = format!("0x{}", hex::encode(slice));
+                            WorkTarget::Factory(factory)
+                        }
+                        WorkTarget::PublicKeyBase(p) => {
+                            let slice = hex::decode(p.replace("0x", "")).map_err(|_| {
+                                RpcMessageError::Activity("Invalid public key base".to_string())
+                            })?;
+                            if slice.len() != 64 {
+                                return Err(RpcMessageError::Activity(
+                                    "Wrong public key base data len".to_string(),
+                                ));
+                            };
+                            let public_key_base = format!("0x{}", hex::encode(slice));
+                            WorkTarget::PublicKeyBase(public_key_base)
+                        }
+                        WorkTarget::Default => WorkTarget::Default,
+                    };
+
+                    log::info!("Setting work target to {:?}", sanitized);
+
+                    send_work_target(sanitized).await?;
                 } else {
                     log::error!("Invalid command for cruncher runtime: {:?}", command);
                     return Err(RpcMessageError::Activity(format!(
@@ -275,14 +327,10 @@ async fn prepare_script_future(
     Ok(exec.batch_id)
 }
 
-async fn run(
-    cli: Cli,
-    mut signal_receiver: Receiver<Signal>,
-    runtime_config: Config,
-) -> anyhow::Result<()> {
+async fn run(cli: Cli, mut signal_receiver: Receiver<Signal>) -> anyhow::Result<()> {
     dotenv::dotenv().ok();
 
-    log::info!("Runtime config: {runtime_config:?}");
+    init_client_api_url()?;
 
     let (exe_unit_url, report_url, activity_id, args) = match &cli.command {
         Command::ServiceBus {
@@ -292,7 +340,7 @@ async fn run(
             ..
         } => (bus_id(service_id), report_url, service_id, args),
         Command::OfferTemplate => {
-            let offer_template = Dummy::offer_template(&runtime_config)?;
+            let offer_template = offer_template::template()?;
             let offer_template = serde_json::to_string_pretty(&offer_template)?;
             io::stdout().write_all(offer_template.as_bytes())?;
             return Ok(());

@@ -2,8 +2,6 @@ use anyhow::Context;
 use std::env::current_exe;
 use std::path::{Path, PathBuf};
 
-pub mod dummy;
-
 #[allow(unused)]
 #[derive(Default, Clone)]
 pub struct Usage {
