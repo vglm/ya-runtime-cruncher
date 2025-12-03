@@ -4123,7 +4123,7 @@ dependencies = [
 
 [[package]]
 name = "ya-runtime-cruncher"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "actix",
  "actix-rt",
