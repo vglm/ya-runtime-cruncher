@@ -1,9 +1,9 @@
 [
     {
-        "name": "dummy",
+        "name": "ya-runtime-cruncher",
         "version": "0.1.0",
         "supervisor-path": "ya-runtime-cruncher",
-        "description": "Dummy ai runtime for testing purposes",
+        "description": "Runtime for vanity cruncher",
         "properties": {},
         "config": {
             "counters": {
