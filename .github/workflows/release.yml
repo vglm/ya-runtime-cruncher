@@ -7,7 +7,6 @@ on:
       - pre-rel-*
 env:
   CARGO_TERM_COLOR: always
-  rust_stable: 1.79.0
 
 jobs:
   release:

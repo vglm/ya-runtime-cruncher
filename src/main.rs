@@ -215,6 +215,7 @@ async fn prepare_script_future(
                 let command = entry_point;
                 log::info!("Receive command {command} with args {}", args.join(" "));
 
+                let mut stdout_message = String::new();
                 if command == "set_hash" {
                     {
                         if let Some(tera_hash) = args.first() {
@@ -229,6 +230,9 @@ async fn prepare_script_future(
                         current_usage.lock().await.clone(),
                     )
                     .await;
+                } else if command == "check_alive" {
+                    log::info!("Check alive command received");
+                    stdout_message = format!("alive - {}", Utc::now());
                 } else if command == "set_work_target" {
                     let first_arg = args.first().ok_or_else(|| {
                         RpcMessageError::Activity("Missing work target arg".to_string())
@@ -298,7 +302,7 @@ async fn prepare_script_future(
                 result.push(ExeScriptCommandResult {
                     index: result.len() as u32,
                     result: CommandResult::Ok,
-                    stdout: Some(CommandOutput::Str("".to_string())),
+                    stdout: Some(CommandOutput::Str(stdout_message)),
                     stderr: Some(CommandOutput::Str("".to_string())),
                     message: Some("Ok".to_string()),
                     is_batch_finished: true,
