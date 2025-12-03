@@ -58,5 +58,5 @@ generate_asset() {
   fi
 }
 
-generate_asset "runtime" "ya-runtime-ai"
+generate_asset "runtime" "ya-runtime-cruncher"
 generate_asset "dummy-framework" "dummy" "ya-dummy-ai.json"
